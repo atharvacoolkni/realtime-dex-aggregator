@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEX Aggregator Client Example</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        h1 {
+            color: #60a5fa;
+        }
+        .controls {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .controls select, .controls button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 4px;
+            border: 1px solid #475569;
+            background: #334155;
+            color: #e2e8f0;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background: #475569;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .status.connected {
+            background: #065f46;
+            color: #d1fae5;
+        }
+        .status.disconnected {
+            background: #7f1d1d;
+            color: #fecaca;
+        }
+        .tokens {
+            display: grid;
+            gap: 15px;
+        }
+        .token-card {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+            transition: transform 0.2s;
+        }
+        .token-card:hover {
+            transform: translateX(5px);
+            border-left-color: #60a5fa;
+        }
+        .token-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .token-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #60a5fa;
+        }
+        .token-ticker {
+            color: #94a3b8;
+        }
+        .token-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .stat {
+            padding: 8px;
+            background: #0f172a;
+            border-radius: 4px;
+        }
+        .stat-label {
+            font-size: 0.8em;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        .positive {
+            color: #34d399;
+        }
+        .negative {
+            color: #f87171;
+        }
+        .update-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #34d399;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-time DEX Aggregator</h1>
+
+    <div class="controls">
+        <select id="timePeriod">
+            <option value="">All Time</option>
+            <option value="1h">1 Hour</option>
+            <option value="24h" selected>24 Hours</option>
+            <option value="7d">7 Days</option>
+        </select>
+
+        <select id="sortBy">
+            <option value="volume" selected>Volume</option>
+            <option value="price_change">Price Change</option>
+            <option value="market_cap">Market Cap</option>
+            <option value="liquidity">Liquidity</option>
+        </select>
+
+        <select id="sortOrder">
+            <option value="desc" selected>Descending</option>
+            <option value="asc">Ascending</option>
+        </select>
+
+        <button onclick="subscribe()">Subscribe</button>
+        <button onclick="refresh()">Refresh</button>
+    </div>
+
+    <div id="status" class="status disconnected">
+        Disconnected
+    </div>
+
+    <div id="tokens" class="tokens">
+        <p>Click Subscribe to load token data...</p>
+    </div>
+
+    <script>
+        const socket = io('http://localhost:3000');
+        const statusEl = document.getElementById('status');
+        const tokensEl = document.getElementById('tokens');
+
+        socket.on('connect', () => {
+            statusEl.textContent = 'Connected';
+            statusEl.className = 'status connected';
+            console.log('Connected to WebSocket');
+        });
+
+        socket.on('disconnect', () => {
+            statusEl.textContent = 'Disconnected';
+            statusEl.className = 'status disconnected';
+            console.log('Disconnected from WebSocket');
+        });
+
+        socket.on('initial_data', (data) => {
+            console.log('Received initial data:', data);
+            displayTokens(data.tokens);
+        });
+
+        socket.on('update', (data) => {
+            console.log('Received update:', data);
+            displayTokens(data.tokens);
+        });
+
+        socket.on('price_update', (data) => {
+            console.log('Price update:', data);
+            statusEl.innerHTML = 'Connected <span class="update-indicator"></span>';
+            displayTokens(data.tokens);
+        });
+
+        socket.on('volume_spike', (data) => {
+            console.log('Volume spike:', data);
+            alert(`Volume spike detected for ${data.token.token_name}!`);
+        });
+
+        socket.on('error', (error) => {
+            console.error('WebSocket error:', error);
+            alert('Error: ' + error.message);
+        });
+
+        function subscribe() {
+            const options = {
+                timePeriod: document.getElementById('timePeriod').value || undefined,
+                sortBy: document.getElementById('sortBy').value,
+                sortOrder: document.getElementById('sortOrder').value,
+                limit: 20
+            };
+
+            console.log('Subscribing with options:', options);
+            socket.emit('subscribe', options);
+        }
+
+        function refresh() {
+            const options = {
+                timePeriod: document.getElementById('timePeriod').value || undefined,
+                sortBy: document.getElementById('sortBy').value,
+                sortOrder: document.getElementById('sortOrder').value,
+                limit: 20
+            };
+
+            console.log('Requesting refresh with options:', options);
+            socket.emit('refresh', options);
+        }
+
+        function displayTokens(tokens) {
+            if (!tokens || tokens.length === 0) {
+                tokensEl.innerHTML = '<p>No tokens found</p>';
+                return;
+            }
+
+            tokensEl.innerHTML = tokens.map(token => `
+                <div class="token-card">
+                    <div class="token-header">
+                        <div>
+                            <div class="token-name">${token.token_name}</div>
+                            <div class="token-ticker">${token.token_ticker}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.2em; font-weight: bold;">${token.price_sol.toFixed(8)} SOL</div>
+                            <div class="${token.price_1hr_change >= 0 ? 'positive' : 'negative'}">
+                                ${token.price_1hr_change >= 0 ? '↑' : '↓'} ${Math.abs(token.price_1hr_change).toFixed(2)}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="token-stats">
+                        <div class="stat">
+                            <div class="stat-label">Market Cap</div>
+                            <div class="stat-value">${token.market_cap_sol.toFixed(2)} SOL</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Volume</div>
+                            <div class="stat-value">${token.volume_sol.toFixed(2)} SOL</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Liquidity</div>
+                            <div class="stat-value">${token.liquidity_sol.toFixed(2)} SOL</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Transactions</div>
+                            <div class="stat-value">${token.transaction_count}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Protocol</div>
+                            <div class="stat-value">${token.protocol}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
