@@ -1,138 +1,147 @@
-Real-time DEX Aggregator Service
+# 🚀 Real-time DEX Aggregator Service
 
-A production-grade backend that aggregates meme coin data from multiple DEX sources (DexScreener + Jupiter) with caching, rate limiting, merging, filtering, pagination, and real-time WebSocket updates — similar to axiom.trade Discover page.
+A production-grade backend that aggregates meme coin data from multiple DEX sources (**DexScreener + Jupiter**) with efficient caching, rate limiting, intelligent merging, filtering, pagination, and **real-time WebSocket updates**.  
+Designed to replicate the token discovery behavior seen on **axiom.trade**.
 
-Live Deployment
+---
 
-REST API:
+## ✅ Live Deployment
 
+### **REST API:**  
 https://realtime-dex-aggregator.onrender.com
 
-WebSocket:
-
+### **WebSocket:**  
 wss://realtime-dex-aggregator.onrender.com
 
-
-Health Check:
-
+### **Health Check:**  
 https://realtime-dex-aggregator.onrender.com/health
 
+---
 
-GitHub Repo:
+## ✅ Repository
+
+GitHub Repo:  
 https://github.com/atharvacoolkni/realtime-dex-aggregator
 
+---
 
-Postman Collection
+## ✅ Postman Collection
 
-Located in this repo: 
+Available in the repo:  
 /postman/realtime-dex-aggregator.postman_collection.json
 
-Features
 
-Aggregates live data from DexScreener API + Jupiter API
+Import this file into Postman / Insomnia to test all REST APIs.
 
-Merges duplicate tokens intelligently based on same token address
+---
 
-Redis caching (TTL 30s)
+## ✅ Features
 
-WebSocket live updates every 30s
+- ✅ Aggregates real-time token data from **DexScreener API** + **Jupiter API**
+- ✅ Intelligent merging of duplicate tokens (same token address)
+- ✅ **Redis caching** with configurable TTL (defaults to 30s)
+- ✅ **WebSocket live updates** every 30 seconds
+- ✅ Real-time:
+  - 📈 price updates  
+  - 🔥 volume spike notifications
+- ✅ Filtering:
+  - `1h`, `24h`, `7d`
+- ✅ Sorting:
+  - `volume`, `market_cap`, `liquidity`, `price_change`
+- ✅ Cursor-based pagination
+- ✅ Exponential backoff + API rate limiting
+- ✅ 10+ **Jest unit & integration tests**
+- ✅ Fully containerized using **Docker**
+- ✅ Deployed on **Render**
 
-Real-time price & volume spike events
+---
 
-Filtering: 1h, 24h, 7d
+## ✅ Tech Stack
 
-Sorting: volume, market_cap, liquidity, price_change
+- **Node.js** + **TypeScript**
+- **Express.js**
+- **Socket.io**
+- **Redis Cloud**
+- **Axios**
+- **Docker**
+- **Render** (hosting)
+- **Jest + Supertest**
 
-Cursor-based pagination
+---
 
-Exponential backoff + API rate limiting
-
-10+ Jest unit + integration tests
-
-
-
-Tech Stack
-
-Node.js + TypeScript
-
-Express.js
-
-Socket.io
-
-Redis (Cloud)
-
-Axios
-
-Jest + Supertest
-
-Docker + Render (deployment)
-
-
+## ✅ Architecture Diagram
 
 client (WebSocket / REST)
-        |
-REST / WS
-        |
-   Aggregator Service
-   ├── DexScreenerService
-   ├── JupiterService
-   ├── mergeTokens()
-   ├── filterTokens()
-   ├── sortTokens()
-        |
-     CacheService (Redis)
-        |
-   Periodic Updater (WebSocket broadcast)
+|
+REST / WS Layer
+|
+Aggregator Service
+├── DexScreenerService
+├── JupiterService
+├── mergeTokens()
+├── filterTokens()
+├── sortTokens()
+|
+CacheService (Redis)
+|
+Periodic Updater (WebSocket Broadcast)
 
 
+---
 
-API Endpoints
-GET /api/tokens
+# ✅ API Endpoints
 
-Query params:
+### **GET `/api/tokens`**
+Query Parameters:
 
-timePeriod=1h|24h|7d
+| Name        | Values                                  |
+|-------------|------------------------------------------|
+| timePeriod  | `1h`, `24h`, `7d`                        |
+| sortBy      | `volume`, `market_cap`, `liquidity`, `price_change` |
+| sortOrder   | `asc`, `desc`                            |
+| limit       | default: `20`                            |
+| cursor      | pagination cursor                        |
 
-sortBy=volume|market_cap|liquidity|price_change
+---
 
-sortOrder=asc|desc
+### **GET `/api/tokens/:address`**
+Get detailed info for a single token by address.
 
-limit=20
+---
 
-cursor=0
+### **POST `/api/tokens/refresh`**
+Force-refresh the token list.  
+Useful for demos & debugging.
 
-GET /api/tokens/:address
+---
 
-Fetch detailed token info.
+# ✅ WebSocket Events
 
-POST /api/tokens/refresh
+### 📤 **Client → Server**
+| Event      | Description |
+|------------|-------------|
+| `subscribe` | Subscribe to real-time updates |
+| `refresh`   | Trigger a manual refresh |
 
-Force data refresh.
+---
 
+### 📥 **Server → Client**
 
-WebSocket Events
-📤 Client → Server:
+| Event name     | Description                              |
+|----------------|-------------------------------------------|
+| `initial_data` | Full token snapshot on connection         |
+| `price_update` | Real-time price changes                   |
+| `update`       | Periodic token list updates               |
+| `volume_spike` | High-volume detection alerts              |
+| `error`        | Error messages                            |
 
-subscribe
-refresh
+---
 
-📥 Server → Client:
+# ✅ How to Run Locally
 
-initial_data
-
-price_update
-
-update
-
-volume_spike
-
-error
-
-How to Run Locally
-
+```bash
 npm install
 npm run dev
-
 
 
 PORT=3000
@@ -145,8 +154,11 @@ RATE_LIMIT_WINDOW_MS=60000
 
 Deployment (Render)
 
-Project uses Dockerfile and render.yaml.
-Render automatically picks Dockerfile and deploys
+This project includes:
 
-Run:
-npm test
+Dockerfile
+
+render.yaml
+
+Render auto-detects Dockerfile and deploys the service.
+Redis is provided via Redis Cloud.
