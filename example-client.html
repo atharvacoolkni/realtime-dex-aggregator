@@ -153,7 +153,11 @@
     </div>
 
     <script>
-        const socket = io('http://localhost:3000');
+        const socket = io('https://realtime-dex-aggregator.onrender.com', {
+    transports: ['websocket'],
+    secure: true,
+});
+
         const statusEl = document.getElementById('status');
         const tokensEl = document.getElementById('tokens');
 
