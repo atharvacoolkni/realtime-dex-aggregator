@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: realtime-dex-aggregator
+    env: docker
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: REDIS_URL
+        sync: false   # you will add this in Render dashboard
+      - key: CACHE_TTL_SECONDS
+        value: "30"
+      - key: WEBSOCKET_UPDATE_INTERVAL_MS
+        value: "5000"
